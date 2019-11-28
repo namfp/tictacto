@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 const (
 	SELF = iota
 	OPPONENT = iota
@@ -10,7 +8,9 @@ const (
 
 type gameState struct {
 	self bool
+	result float32
 	board Board
+	bestMove *gameState
 }
 
 type Board = [9]int
@@ -52,7 +52,7 @@ func checkFirstDiagonal(player int, board *Board) bool {
 
 func checkSecondDiagonal(player int, board *Board) bool {
 	for i:=2; i <= 6; i+=2 {
-		if board[i] == player {
+		if board[i] != player {
 			return false
 		}
 	}
@@ -67,25 +67,66 @@ func checkWinner(player int, board *Board) bool {
 			return true
 		}
 	}
+
+	if checkFirstDiagonal(player, board) || checkSecondDiagonal(player, board) {
+		return true
+	}
 	return false
 }
 
-func nextPlayer(player int) int {
-	switch player {
-	case SELF:
-		return OPPONENT
-	case OPPONENT:
-		return SELF
-	default:
-		panic(fmt.Sprintf("Player %v is not valid", player))
+func computeBoardResult(board *Board) float32 {
+	if checkWinner(SELF, board) {
+		return 1.0
+	} else if checkWinner(OPPONENT, board) {
+		return -1.0
+	} else {
+		return 0.0
 	}
 }
 
-func stateCopy(state gameState) gameState {
-	return gameState{state.self, state.board}
+func stateCopy(state *gameState) gameState {
+	return gameState{state.self, state.result,state.board, state.bestMove}
 }
 
 
-func nextPossibilities(state gameState) []gameState {
- 	return []gameState{}
+func nextPossibilities(state *gameState) []gameState {
+	var states []gameState
+	for i:=0; i<9; i++ {
+		if state.board[i] == EMPTY {
+			newState := stateCopy(state)
+			if state.self {
+				newState.board[i] = SELF
+			} else {
+				newState.board[i] = OPPONENT
+			}
+			newState.self = !newState.self
+			states = append(states, newState)
+		}
+	}
+ 	return states
  }
+
+func minimax(state *gameState) {
+	result := computeBoardResult(&state.board)
+	allPossibilities := nextPossibilities(state)
+	if result == 1.0 || result == -1.0 || len(allPossibilities) == 0 {
+		state.result = result
+		state.bestMove = nil
+	} else {
+		if state.self {
+			evaluate(allPossibilities, state, func(x float32, y float32) bool {return x > y})
+		} else {
+			evaluate(allPossibilities, state, func(x float32, y float32) bool {return x < y})
+		}
+	}
+}
+
+func evaluate(allPossibilities []gameState, state *gameState, compare func(float32, float32) bool) {
+	for i, s := range allPossibilities {
+		minimax(&s)
+		if i == 0 || compare(s.result, state.result) {
+			state.result = s.result
+			state.bestMove = &allPossibilities[i]
+		}
+	}
+}
