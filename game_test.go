@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestCheckWinner(t *testing.T) {
 	board := [9]int{
@@ -113,5 +115,41 @@ func TestMiniMax2(t *testing.T) {
 	if state.bestMove.board[5] != SELF {
 		t.Errorf("It must play the position 5")
 	}
+}
+
+
+func TestCopy(t *testing.T) {
+	type New struct {
+		a *int
+		b [][]string
+	}
+
+	first:=New{new(int), [][]string{[]string{"x"}, []string{"y"}}}
+	*first.a = 0
+	second := first
+	*first.a = 1
+
+	if &second == &first {
+		t.Errorf("second and first is not the same")
+	}
+
+	if *second.a != *first.a {
+		t.Errorf("second and first is not the same")
+	}
+	second.a = new(int)
+	*second.a = 2
+	if *second.a == *first.a {
+		t.Errorf("second and first is the same)")
+	}
+
+	if &first.b == &second.b {
+		t.Errorf("should not be equal")
+	}
+
+	second.b[0] = make([]string, 0)
+	if &first.b[0] == &second.b[0] {
+		t.Errorf("should be equal")
+	}
+
 }
 

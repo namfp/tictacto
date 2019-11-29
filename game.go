@@ -10,15 +10,6 @@ const (
 	EMPTY = iota
 )
 
-type gameState struct {
-	self bool
-	result float32
-	board Board
-	bestMove *gameState
-}
-
-type Board = [9]int
-
 func emptyBoard() Board {
 	var board [9]int
 	for i := 0; i < 9; i++ {
@@ -92,7 +83,6 @@ func stateCopy(state *gameState) gameState {
 	return gameState{state.self, state.result,state.board, state.bestMove}
 }
 
-
 func nextPossibilities(state *gameState) []gameState {
 	var states []gameState
 	for i:=0; i<9; i++ {
@@ -154,7 +144,7 @@ func move(state *gameState, player int, i int, j int) {
 }
 
 
-func main() {
+func testMain() {
 	board := emptyBoard()
 	state := gameState{true, 0, board, nil}
 	for {
@@ -183,4 +173,12 @@ func main() {
 		move(&state, SELF, myMoveX, myMoveY)
 		fmt.Println(myMoveX, myMoveY)// Write action to stdout
 	}
+}
+
+
+func main() {
+	//r := rect{1, 2}
+	//fmt.Println(r.area())
+	//fmt.Println(r.height)
+
 }
