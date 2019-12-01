@@ -102,6 +102,24 @@ func findNextPossibilitiesUltimate(state *UltimateState) []UltimateState {
 	return []UltimateState{}
 }
 
+func scoreGameState(ultimateBoard *UltimateBoard) float32 {
+	b := emptyBoard()
+	for i, b:= range ultimateBoard {
+		b[i] = findWinner(&b)
+	}
+	score := float32(0.0)
+	for _, v := range b {
+		if v == SELF {
+			score += 1
+		} else if v == OPPONENT {
+			score -= 1
+		}
+	}
+	return score
+}
 
 
+//func minimax(gameState UltimateState) UltimateState {
+//
+//}
 
