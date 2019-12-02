@@ -5,7 +5,6 @@ type GameState interface {
 		result() float64
 		nextMoves() []GameState
 		gameFinished() bool
-		minimax() *GameState
 	}
 
 type gameState struct {

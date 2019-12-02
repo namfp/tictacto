@@ -55,7 +55,6 @@ func checkSecondDiagonal(player int, board *Board) bool {
 }
 
 
-
 func checkWinner(player int, board *Board) bool {
 	for i := 0; i < 3; i++ {
 		if checkRow(player, i, board) || checkColumn(player, i, board) {
