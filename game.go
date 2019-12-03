@@ -8,6 +8,7 @@ const (
 	SELF = iota
 	OPPONENT = iota
 	EMPTY = iota
+	FULL = iota
 )
 
 func emptyBoard() Board {
@@ -134,7 +135,7 @@ func getMove(state *gameState, nextState *gameState) (int, int) {
 }
 
 func move(state *gameState, player int, i int, j int) {
-	if state.self && player == OPPONENT{
+	if state.self && player == OPPONENT {
 		panic("It is not the opponent turn!")
 	}
 	pos := i * 3 + j
