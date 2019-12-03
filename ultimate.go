@@ -247,7 +247,6 @@ func moveUltimate(state *UltimateState, i int, j int) {
 	state.bestMove = nil
 	// Check winner to update resultBoard
 	state.boardResult[lastMove.boardCoordinate] = getWinner(&state.ultimateBoard[lastMove.boardCoordinate])
-	fmt.Println(lastMove)
 }
 
 func convertCoordinate(oneDim int) (int, int) {
@@ -271,7 +270,9 @@ func toBoardCoordinate(i int, j int) MoveCoordinate {
 func runUltimate() {
 	state := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
 		MoveCoordinate{-1, -1}, nil}
+	turn := 0
 	for {
+		turn++
 		var opponentRow, opponentCol int
 		_, _ = fmt.Scan(&opponentRow, &opponentCol)
 
@@ -289,12 +290,19 @@ func runUltimate() {
 			state.self = false
 			moveUltimate(&state, opponentCol, opponentRow)
 		}
-
-		next := play(&state, 5)
+		var depth int
+		if turn < 10 {
+			depth = 5
+		} else if turn < 20 {
+			depth = 6
+		} else {
+			depth = 7
+		}
+		next := play(&state, depth)
 		if next != nil {
 			x, y := computeMove(next.lastMove)
 			moveUltimate(&state, x, y)
-			fmt.Println(x, y)// Write action to stdout
+			fmt.Println(y, x)// Write action to stdout
 		}
 
 		// fmt.Fprintln(os.Stderr, "Debug messages...")

@@ -8,6 +8,7 @@ import (
 )
 
 func TestFindNextPossibilities(t *testing.T) {
+
 	gameState := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
 		MoveCoordinate{-1, -1}, nil}
 	allPossibilites := findNextPossibilitiesUltimate(&gameState)
