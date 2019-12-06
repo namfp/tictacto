@@ -19,6 +19,7 @@ type UltimateState struct {
 	boardResult Board
 	lastMove MoveCoordinate // value equal -1 when there is no lastMove
 	bestMove *UltimateState
+	nbEvaluations int
 }
 
 
@@ -117,151 +118,34 @@ func findNextPossibilitiesUltimate(state *UltimateState) []UltimateState {
 	return result
 }
 
-func scoreGameState(ultimateBoard *UltimateBoard) float64 {
-	scoreSelf := computeMiniBoardScore(ultimateBoard, SELF)
-	scoreOpponent := computeMiniBoardScore(ultimateBoard, OPPONENT)
-	return scoreSelf - scoreOpponent
-}
 
 
-func computeMiniBoardScore(ultimateBoard *UltimateBoard, player int) float64 {
-	globalBoard := emptyBoard()
-	score := 0.0
-	for i, board:= range ultimateBoard {
-		globalBoard[i] = findWinner(&board)
-		if i == 4 && globalBoard[i] == EMPTY {
-			for c := range board {
-				if c == player {
-					score += 3 // add 3 for each played at the center
-				}
-			}
-		}
-		score += computeConsecutiveWinningScore(&board, player) * 2
-	}
 
-	for i, v := range globalBoard {
-		if v == player {
-			score += 5
-			if i == 4 { // center board
-				score += 10
-			}
-			if i == 0 || i == 2 || i == 6 || i == 8 {
-				score += 3
-			}
-		}
-	}
-	score += computeConsecutiveWinningScore(&globalBoard, player) * 4
-	return score
-}
-
-func computeConsecutiveWinningScoreColumn(board *Board, player int) float64 {
-	score := 0.0
-	for i := 0; i < 3; i++ { // count columns
-		count := 0
-		isCount := true
-		for j := 0; j < 3; j++ {
-			v := board[j * 3 + i]
-			if v == player {
-				count += 1
-			} else if v != EMPTY {
-				isCount = false
-			}
-		}
-		if isCount && count == 2{
-			score += 1
-		}
-	}
-	return score
-}
-
-func computeConsecutiveWinningScoreLine(board *Board, player int) float64 {
-	score := 0.0
-	for j := 0; j < 3; j++ {
-		count := 0
-		isCount := true
-		for i := 0; i < 3; i++ {
-			v := board[j * 3 + i]
-			if v == player {
-				count += 1
-			} else if v != EMPTY {
-				isCount = false
-			}
-		}
-		if isCount && count == 2{
-			score += 1
-		}
-	}
-	return score
-}
-
-func computeConsecutiveWinningScoreFirstDiagonal(board *Board, player int) float64 {
-	count := 0
-	isCount := true
-	score := 0.0
-	for i:=0; i<9; i +=4 {
-		if board[i] == player {
-			count += 1
-		} else if board[i] != EMPTY {
-			isCount = false
-		}
-	}
-	if isCount && count == 2{
-		score += 1
-	}
-	return score
-}
-
-
-func computeConsecutiveWinningScoreSecondDiagonal(board *Board, player int) float64 {
-	count := 0
-	isCount := true
-	score := 0.0
-
-	for i:=2; i<=6; i += 2 {
-		if board[i] == player {
-			count += 1
-		} else if board[i] != EMPTY {
-			isCount = false
-		}
-	}
-	if isCount && count == 2{
-		score += 1
-	}
-	return score
-}
-
-func computeConsecutiveWinningScore(board *Board, player int) float64 {
-	scoreColumns := computeConsecutiveWinningScoreColumn(board, player)
-	scoreLines := computeConsecutiveWinningScoreLine(board, player)
-	scoreFirstDiagonal := computeConsecutiveWinningScoreFirstDiagonal(board, player)
-	scoreSecondDiagonal := computeConsecutiveWinningScoreSecondDiagonal(board, player)
-	return scoreColumns + scoreLines + scoreFirstDiagonal + scoreSecondDiagonal
-}
-
-
-func setResult(ultimateState *UltimateState, result float64) {
+func setResult(ultimateState *UltimateState, result float64, nbEvaluation int) {
 	ultimateState.result = result
 	ultimateState.bestMove = nil
+	ultimateState.nbEvaluations = nbEvaluation
 }
-
 
 func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta float64) {
 	winner := findWinnerUltimate(&ultimateState.ultimateBoard)
 	if winner == SELF {
-		setResult(ultimateState, 10000)
+		setResult(ultimateState, 10000, 1)
 	} else if winner == OPPONENT {
-		setResult(ultimateState, -10000)
+		setResult(ultimateState, -10000, 1)
 	} else if depth == 0 {
-		setResult(ultimateState, scoreGameState(&ultimateState.ultimateBoard))
+		setResult(ultimateState, scoreGameState(&ultimateState.ultimateBoard), 1)
 	} else {
 		nextPossibilities := findNextPossibilitiesUltimate(ultimateState)
 		if len(nextPossibilities) == 0 {
-			setResult(ultimateState, 0)
+			setResult(ultimateState, 0, 1)
 		} else if ultimateState.self {
 			value := math.Inf(-1)
 			var bestMove *UltimateState
+			nbEvaluations := 1
 			for i, s := range nextPossibilities {
 				alphaBeta(&s, depth - 1, alpha, beta)
+				nbEvaluations += s.nbEvaluations
 				if s.result > value {
 					value = s.result
 					bestMove = &nextPossibilities[i]
@@ -271,17 +155,21 @@ func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta floa
 				if alpha >= beta {
 					ultimateState.result = value
 					ultimateState.bestMove = &nextPossibilities[i]
+					ultimateState.nbEvaluations = nbEvaluations
 					break
 				}
 			}
 			ultimateState.result = value
 			ultimateState.bestMove = bestMove
+			ultimateState.nbEvaluations = nbEvaluations
 
 		} else {
 			value := math.Inf(1)
 			var bestMove *UltimateState
+			nbEvaluations := 1
 			for i, s := range nextPossibilities {
 				alphaBeta(&s, depth - 1, alpha, beta)
+				nbEvaluations += s.nbEvaluations
 				value = math.Min(value, s.result)
 				beta = math.Min(beta, value)
 
@@ -293,11 +181,13 @@ func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta floa
 				if alpha >= beta {
 					ultimateState.result = value
 					ultimateState.bestMove = &nextPossibilities[i]
+					ultimateState.nbEvaluations = nbEvaluations
 					break
 				}
 			}
 			ultimateState.result = value
 			ultimateState.bestMove = bestMove
+			ultimateState.nbEvaluations = nbEvaluations
 		}
 	}
 }
@@ -373,7 +263,7 @@ func toBoardCoordinate(i int, j int) MoveCoordinate {
 
 func runUltimate() {
 	state := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
-		MoveCoordinate{-1, -1}, nil}
+		MoveCoordinate{-1, -1}, nil, 0}
 	turn := 0
 	for {
 		turn++

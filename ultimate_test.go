@@ -7,10 +7,16 @@ import (
 	"testing"
 )
 
+
+func gameStateTest() UltimateState{
+	gameState := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
+		MoveCoordinate{-1, -1}, nil, 1}
+	return gameState
+}
+
 func TestFindNextPossibilities(t *testing.T) {
 
-	gameState := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
-		MoveCoordinate{-1, -1}, nil}
+	gameState := gameStateTest()
 	allPossibilites := findNextPossibilitiesUltimate(&gameState)
 	if len(allPossibilites) != 81 {
 		t.Errorf("allPossibilites should be 81, got %v", len(allPossibilites))
@@ -19,20 +25,17 @@ func TestFindNextPossibilities(t *testing.T) {
 
 
 func TestAlphaBeta1(t *testing.T) {
-	gameState := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
-		MoveCoordinate{-1, -1}, nil}
+	gameState := gameStateTest()
 	alphaBeta(&gameState, 6, math.Inf(-1), math.Inf(1))
 }
 
 func TestPlayFunc(t *testing.T) {
-	gameState := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
-		MoveCoordinate{-1, -1}, nil}
+	gameState := gameStateTest()
 	play(&gameState, 5)
 }
 
 func TestMoveUltimate(t *testing.T) {
-	gameState := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
-		MoveCoordinate{-1, -1}, nil}
+	gameState := gameStateTest()
 	moveUltimate(&gameState, 8, 8)
 	compare := MoveCoordinate{8, 8}
 	if gameState.lastMove != compare {
@@ -46,8 +49,7 @@ func TestMoveUltimate(t *testing.T) {
 
 
 func TestMoveUltimate2(t *testing.T) {
-	gameState := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
-		MoveCoordinate{-1, -1}, nil}
+	gameState := gameStateTest()
 	moveUltimate(&gameState, 4, 6)
 	compare := MoveCoordinate{7, 1}
 	if gameState.lastMove != compare {
@@ -88,8 +90,7 @@ func TestFindNextPossibilitiesUltimate(t *testing.T) {
 		Cd{1, 8},
 		Cd{5, 7}}
 
-	gameState := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
-		MoveCoordinate{-1, -1}, nil}
+	gameState := gameStateTest()
 
 	for _, c := range played {
 		moveUltimate(&gameState, c.y, c.x)
@@ -123,8 +124,7 @@ func TestScoreBoard(t *testing.T) {
 		Cd{0,  2}, Cd{1,  6}, Cd{3,  1}, Cd{0,  3}, Cd{0,  1}, Cd{1,  3},
 		Cd{4,  2}, Cd{4,  6}, Cd{4,  1}, Cd{3,  3}, Cd{2,  2}, Cd{2,  3},
 		Cd{7,  2}, Cd{2,  6}}
-	gameState := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
-		MoveCoordinate{-1, -1}, nil}
+	gameState := gameStateTest()
 
 	for _, c := range played {
 		moveUltimate(&gameState, c.y, c.x)
