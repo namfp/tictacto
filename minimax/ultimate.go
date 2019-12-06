@@ -7,78 +7,11 @@ import (
 	. "tictactoe/game"
 )
 
-func nextBoards(player int, board *Board) ([]Board, []int) {
-	var boards []Board
-	var coordinates []int
-	for i, v := range board {
-		if v == EMPTY {
-			newBoard := *board
-			newBoard[i] = player
-			boards = append(boards, newBoard)
-			coordinates = append(coordinates, i)
-		}
-	}
-	return boards, coordinates
-}
-
-func player(self bool) int {
-	if self {
-		return SELF
-	} else {
-		return OPPONENT
-	}
-}
-
 type UltimateState struct {
-	self          bool
 	result        float64
-	ultimateBoard UltimateBoard
-	boardResult   Board
-	lastMove      MoveCoordinate // value equal -1 when there is no lastMove
 	bestMove      *UltimateState
 	nbEvaluations int
-}
-
-
-
-func possibleUltimateState(state *UltimateState, nextBoard int) []UltimateState {
-	var result []UltimateState
-	possibleBoards, coordinates := nextBoards(player(state.self), &state.ultimateBoard[nextBoard])
-	for j, p := range possibleBoards {
-		cloned := *state
-		cloned.ultimateBoard[nextBoard] = p
-		cloned.boardResult[nextBoard] = GetWinner(&cloned.ultimateBoard[nextBoard])
-		cloned.self = !cloned.self
-		cloned.lastMove = MoveCoordinate{nextBoard, coordinates[j]}
-		cloned.bestMove = nil
-		result = append(result, cloned)
-	}
-	return result
-}
-
-func findNextPossibilitiesUltimate(state *UltimateState) []UltimateState {
-	var result []UltimateState
-	if state.lastMove.BoardCoordinate == -1 {
-		for i:= range state.ultimateBoard {
-			for _, s:= range possibleUltimateState(state, i) {
-				result = append(result, s)
-			}
-		}
-	} else if state.boardResult[state.lastMove.Coordinate] != EMPTY {
-		for i:= range state.ultimateBoard {
-			if state.boardResult[i] == EMPTY {
-				for _, s:= range possibleUltimateState(state, i) {
-					result = append(result, s)
-				}
-			}
-		}
-	} else {
-		nextBoard := state.lastMove.Coordinate
-		for _, s:= range possibleUltimateState(state, nextBoard) {
-			result = append(result, s)
-		}
-	}
-	return result
+	gameData      *DataGame
 }
 
 
@@ -88,34 +21,47 @@ func setResult(ultimateState *UltimateState, result float64, nbEvaluation int) {
 	ultimateState.nbEvaluations = nbEvaluation
 }
 
+func createState(ultimateState *UltimateState, game *DataGame) UltimateState {
+	cloned := *ultimateState
+	cloned.gameData = game
+	cloned.bestMove = nil
+	cloned.result = 0
+	cloned.nbEvaluations = 0
+	return cloned
+}
+
+
 func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta float64) {
-	winner := FindWinnerUltimate(&ultimateState.ultimateBoard)
+
+
+	winner := FindWinnerUltimate(&ultimateState.gameData.UBoard)
 	if winner == SELF {
 		setResult(ultimateState, 10000, 1)
 	} else if winner == OPPONENT {
 		setResult(ultimateState, -10000, 1)
 	} else if depth == 0 {
-		setResult(ultimateState, scoreGameState(&ultimateState.ultimateBoard), 1)
+		setResult(ultimateState, scoreGameState(&ultimateState.gameData.UBoard), 1)
 	} else {
-		nextPossibilities := findNextPossibilitiesUltimate(ultimateState)
+		nextPossibilities := FindNextPossibilities(ultimateState.gameData)
 		if len(nextPossibilities) == 0 {
 			setResult(ultimateState, 0, 1)
-		} else if ultimateState.self {
+		} else if ultimateState.gameData.Self {
 			value := math.Inf(-1)
 			var bestMove *UltimateState
 			nbEvaluations := 1
-			for i, s := range nextPossibilities {
-				alphaBeta(&s, depth - 1, alpha, beta)
-				nbEvaluations += s.nbEvaluations
-				if s.result > value {
-					value = s.result
-					bestMove = &nextPossibilities[i]
+			for _, s := range nextPossibilities {
+				state := createState(ultimateState, s)
+				alphaBeta(&state, depth - 1, alpha, beta)
+				nbEvaluations += state.nbEvaluations
+				if state.result > value {
+					value = state.result
+					bestMove = &state
 				}
 
 				alpha = math.Max(alpha, value)
 				if alpha >= beta {
 					ultimateState.result = value
-					ultimateState.bestMove = &nextPossibilities[i]
+					ultimateState.bestMove = &state
 					ultimateState.nbEvaluations = nbEvaluations
 					break
 				}
@@ -128,20 +74,21 @@ func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta floa
 			value := math.Inf(1)
 			var bestMove *UltimateState
 			nbEvaluations := 1
-			for i, s := range nextPossibilities {
-				alphaBeta(&s, depth - 1, alpha, beta)
-				nbEvaluations += s.nbEvaluations
-				value = math.Min(value, s.result)
-				beta = math.Min(beta, value)
+			for _, s := range nextPossibilities {
+				state := createState(ultimateState, s)
+				alphaBeta(&state, depth - 1, alpha, beta)
+				nbEvaluations += state.nbEvaluations
 
-				if s.result < value {
-					value = s.result
-					bestMove = &nextPossibilities[i]
+				if state.result < value {
+					value = state.result
+					bestMove = &state
 				}
+
+				beta = math.Min(beta, value)
 
 				if alpha >= beta {
 					ultimateState.result = value
-					ultimateState.bestMove = &nextPossibilities[i]
+					ultimateState.bestMove = &state
 					ultimateState.nbEvaluations = nbEvaluations
 					break
 				}
@@ -157,11 +104,12 @@ func play(ultimateState *UltimateState, depth int) *UltimateState {
 	alphaBeta(ultimateState, depth, math.Inf(-1), math.Inf(1))
 	if ultimateState.bestMove == nil {
 		// create a random move
-		possibleMoves := findNextPossibilitiesUltimate(ultimateState)
+		possibleMoves := FindNextPossibilities(ultimateState.gameData)
 		nb := len(possibleMoves)
 		var chosen UltimateState
 		if nb != 0 {
-			chosen = possibleMoves[rand.Int31n(int32(nb))]
+			game := possibleMoves[rand.Int31n(int32(nb))]
+			chosen = createState(ultimateState, game)
 			return &chosen
 		} else {
 			return nil
@@ -171,16 +119,6 @@ func play(ultimateState *UltimateState, depth int) *UltimateState {
 	}
 }
 
-
-func moveUltimate(state *UltimateState, i int, j int) {
-	lastMove := toBoardCoordinate(i, j)
-	state.ultimateBoard[lastMove.BoardCoordinate][lastMove.Coordinate] = player(state.self)
-	state.self = !state.self
-	state.lastMove = lastMove
-	state.bestMove = nil
-	// Check winner to update resultBoard
-	state.boardResult[lastMove.BoardCoordinate] = GetWinner(&state.ultimateBoard[lastMove.BoardCoordinate])
-}
 
 func convertCoordinate(oneDim int) (int, int) {
 	return oneDim % 3, oneDim / 3
@@ -192,17 +130,11 @@ func computeMove(move MoveCoordinate) (int, int) {
 	return boardX * 3 + i, boardY * 3 + j
 }
 
-func toBoardCoordinate(i int, j int) MoveCoordinate {
-	boardi := i / 3
-	boardj := j / 3
-	boardCoordinate := boardj* 3 + boardi
-	cellCoordinate := (j % 3) * 3 + i % 3
-	return MoveCoordinate{boardCoordinate, cellCoordinate}
-}
 
 func runUltimate() {
-	state := UltimateState{true, 0.0,EmptyUltimateBoard(), EmptyBoard(),
-		MoveCoordinate{-1, -1}, nil, 0}
+	state := UltimateState{0.0, nil, 0,
+		&DataGame{true, EmptyUltimateBoard(),
+			EmptyBoard(), MoveCoordinate{-1, -1}}}
 	turn := 0
 	for {
 		turn++
@@ -218,10 +150,10 @@ func runUltimate() {
 		}
 
 		if opponentRow == -1 && opponentCol == -1 {
-			state.self = true
+			state.gameData.Self = true
 		} else {
-			state.self = false
-			moveUltimate(&state, opponentCol, opponentRow)
+			state.gameData.Self = false
+			Move(state.gameData, opponentCol, opponentRow)
 		}
 		var depth int
 		if turn < 10 {
@@ -233,8 +165,8 @@ func runUltimate() {
 		}
 		next := play(&state, depth)
 		if next != nil {
-			x, y := computeMove(next.lastMove)
-			moveUltimate(&state, x, y)
+			x, y := computeMove(next.gameData.LastMove)
+			Move(state.gameData, x, y)
 			fmt.Println(y, x)// Write action to stdout
 		}
 
