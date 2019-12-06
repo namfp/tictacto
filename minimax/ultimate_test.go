@@ -1,5 +1,5 @@
 
-package main
+package minimax
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 )
 
 
-func gameStateTest() UltimateState{
-	gameState := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
+func gameStateTest() UltimateState {
+	gameState := UltimateState{true, 0.0, emptyUltimateBoard(), emptyBoard(),
 		MoveCoordinate{-1, -1}, nil, 1}
 	return gameState
 }

@@ -1,13 +1,14 @@
-package main
+package minimax
 
 import (
 	"fmt"
+	"tictactoe/game"
 	"time"
 )
 
-func bench() {
-	state := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
-		MoveCoordinate{-1, -1}, nil, 1}
+func Bench() {
+	state := UltimateState{true, 0.0, game.EmptyUltimateBoard(), game.EmptyBoard(),
+		game.MoveCoordinate{-1, -1}, nil, 1}
 	for {
 		start := time.Now()
 		next := play(&state, 5)
@@ -25,8 +26,4 @@ func bench() {
 			break
 		}
 	}
-}
-
-func main() {
-	bench()
 }

@@ -1,4 +1,6 @@
-package main
+package minimax
+
+import . "tictactoe/game"
 
 func scoreGameState(ultimateBoard *UltimateBoard) float64 {
 	scoreSelf := computeMiniBoardScore(ultimateBoard, SELF)
@@ -8,10 +10,10 @@ func scoreGameState(ultimateBoard *UltimateBoard) float64 {
 
 
 func computeMiniBoardScore(ultimateBoard *UltimateBoard, player int) float64 {
-	globalBoard := emptyBoard()
+	globalBoard := EmptyBoard()
 	score := 0.0
 	for i, board:= range ultimateBoard {
-		globalBoard[i] = findWinner(&board)
+		globalBoard[i] = FindWinner(&board)
 		if i == 4 && globalBoard[i] == EMPTY {
 			for c := range board {
 				if c == player {

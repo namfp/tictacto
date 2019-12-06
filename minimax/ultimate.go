@@ -1,60 +1,11 @@
-package main
+package minimax
 
 import (
 	"fmt"
 	"math"
 	"math/rand"
+	. "tictactoe/game"
 )
-
-type MoveCoordinate struct {
-	boardCoordinate int
-	coordinate int
-}
-
-
-type UltimateState struct {
-	self bool
-	result float64
-	ultimateBoard UltimateBoard
-	boardResult Board
-	lastMove MoveCoordinate // value equal -1 when there is no lastMove
-	bestMove *UltimateState
-	nbEvaluations int
-}
-
-
-type UltimateBoard = [9]Board
-
-func emptyUltimateBoard() UltimateBoard {
-	var board UltimateBoard
-	for i := range board {
-		for j := range board[i] {
-			board[i][j] = EMPTY
-		}
-	}
-	return board
-}
-
-func findWinner(board *Board) int {
-	if checkWinner(SELF, board) {
-		return SELF
-	} else if checkWinner(OPPONENT, board) {
-		return OPPONENT
-	} else {
-		return EMPTY
-	}
-}
-
-/*
-Return SELF, OPPONENT or EMPTY means no winner
- */
-func findWinnerUltimate(ultimateBoard *UltimateBoard) int {
-	board := emptyBoard()
-	for i, b:= range ultimateBoard {
-		board[i] = findWinner(&b)
-	}
-	return findWinner(&board)
-}
 
 func nextBoards(player int, board *Board) ([]Board, []int) {
 	var boards []Board
@@ -78,13 +29,25 @@ func player(self bool) int {
 	}
 }
 
+type UltimateState struct {
+	self          bool
+	result        float64
+	ultimateBoard UltimateBoard
+	boardResult   Board
+	lastMove      MoveCoordinate // value equal -1 when there is no lastMove
+	bestMove      *UltimateState
+	nbEvaluations int
+}
+
+
+
 func possibleUltimateState(state *UltimateState, nextBoard int) []UltimateState {
 	var result []UltimateState
 	possibleBoards, coordinates := nextBoards(player(state.self), &state.ultimateBoard[nextBoard])
 	for j, p := range possibleBoards {
 		cloned := *state
 		cloned.ultimateBoard[nextBoard] = p
-		cloned.boardResult[nextBoard] = getWinner(&cloned.ultimateBoard[nextBoard])
+		cloned.boardResult[nextBoard] = GetWinner(&cloned.ultimateBoard[nextBoard])
 		cloned.self = !cloned.self
 		cloned.lastMove = MoveCoordinate{nextBoard, coordinates[j]}
 		cloned.bestMove = nil
@@ -95,13 +58,13 @@ func possibleUltimateState(state *UltimateState, nextBoard int) []UltimateState 
 
 func findNextPossibilitiesUltimate(state *UltimateState) []UltimateState {
 	var result []UltimateState
-	if state.lastMove.boardCoordinate == -1 {
+	if state.lastMove.BoardCoordinate == -1 {
 		for i:= range state.ultimateBoard {
 			for _, s:= range possibleUltimateState(state, i) {
 				result = append(result, s)
 			}
 		}
-	} else if state.boardResult[state.lastMove.coordinate] != EMPTY {
+	} else if state.boardResult[state.lastMove.Coordinate] != EMPTY {
 		for i:= range state.ultimateBoard {
 			if state.boardResult[i] == EMPTY {
 				for _, s:= range possibleUltimateState(state, i) {
@@ -110,15 +73,13 @@ func findNextPossibilitiesUltimate(state *UltimateState) []UltimateState {
 			}
 		}
 	} else {
-		nextBoard := state.lastMove.coordinate
+		nextBoard := state.lastMove.Coordinate
 		for _, s:= range possibleUltimateState(state, nextBoard) {
 			result = append(result, s)
 		}
 	}
 	return result
 }
-
-
 
 
 func setResult(ultimateState *UltimateState, result float64, nbEvaluation int) {
@@ -128,7 +89,7 @@ func setResult(ultimateState *UltimateState, result float64, nbEvaluation int) {
 }
 
 func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta float64) {
-	winner := findWinnerUltimate(&ultimateState.ultimateBoard)
+	winner := FindWinnerUltimate(&ultimateState.ultimateBoard)
 	if winner == SELF {
 		setResult(ultimateState, 10000, 1)
 	} else if winner == OPPONENT {
@@ -210,37 +171,15 @@ func play(ultimateState *UltimateState, depth int) *UltimateState {
 	}
 }
 
-func fullBoard(board *Board)  bool {
-	for i:= range board {
-		if board[i] == EMPTY {
-			return false
-		}
-	}
-	return true
-}
-
-func getWinner(board *Board) int {
-	if checkWinner(SELF, board) {
-		return SELF
-	} else if checkWinner(OPPONENT, board) {
-		return OPPONENT
-	} else if fullBoard(board) {
-		return FULL
-	} else {
-		return EMPTY
-	}
-}
-
-
 
 func moveUltimate(state *UltimateState, i int, j int) {
 	lastMove := toBoardCoordinate(i, j)
-	state.ultimateBoard[lastMove.boardCoordinate][lastMove.coordinate] = player(state.self)
+	state.ultimateBoard[lastMove.BoardCoordinate][lastMove.Coordinate] = player(state.self)
 	state.self = !state.self
 	state.lastMove = lastMove
 	state.bestMove = nil
 	// Check winner to update resultBoard
-	state.boardResult[lastMove.boardCoordinate] = getWinner(&state.ultimateBoard[lastMove.boardCoordinate])
+	state.boardResult[lastMove.BoardCoordinate] = GetWinner(&state.ultimateBoard[lastMove.BoardCoordinate])
 }
 
 func convertCoordinate(oneDim int) (int, int) {
@@ -248,8 +187,8 @@ func convertCoordinate(oneDim int) (int, int) {
 }
 
 func computeMove(move MoveCoordinate) (int, int) {
-	boardX, boardY := convertCoordinate(move.boardCoordinate)
-	i, j := convertCoordinate(move.coordinate)
+	boardX, boardY := convertCoordinate(move.BoardCoordinate)
+	i, j := convertCoordinate(move.Coordinate)
 	return boardX * 3 + i, boardY * 3 + j
 }
 
@@ -262,7 +201,7 @@ func toBoardCoordinate(i int, j int) MoveCoordinate {
 }
 
 func runUltimate() {
-	state := UltimateState{true, 0.0,emptyUltimateBoard(), emptyBoard(),
+	state := UltimateState{true, 0.0,EmptyUltimateBoard(), EmptyBoard(),
 		MoveCoordinate{-1, -1}, nil, 0}
 	turn := 0
 	for {
