@@ -3,7 +3,7 @@ package game
 import "testing"
 
 func TestConversionCoordinate(t *testing.T) {
-	c := toBoardCoordinate(5, 7)
+	c := ToBoardCoordinate(5, 7)
 	if c !=( MoveCoordinate{7, 5}) {
 		t.Errorf("%v not correct", c)
 	}

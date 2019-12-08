@@ -75,7 +75,7 @@ func FindNextPossibilities(state *DataGame) []*DataGame {
 	return result
 }
 
-func toBoardCoordinate(i int, j int) MoveCoordinate {
+func ToBoardCoordinate(i int, j int) MoveCoordinate {
 	boardi := i / 3
 	boardj := j / 3
 	boardCoordinate := boardj* 3 + boardi
@@ -83,8 +83,8 @@ func toBoardCoordinate(i int, j int) MoveCoordinate {
 	return MoveCoordinate{boardCoordinate, cellCoordinate}
 }
 
-func Move(state *DataGame, i int, j int) {
-	lastMove := toBoardCoordinate(i, j)
+func Move(state *DataGame, col int, row int) {
+	lastMove := ToBoardCoordinate(col, row)
 	state.UBoard[lastMove.BoardCoordinate][lastMove.Coordinate] = Player(state.Self)
 	state.Self = !state.Self
 	state.LastMove = lastMove

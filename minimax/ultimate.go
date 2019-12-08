@@ -120,24 +120,14 @@ func play(ultimateState *UltimateState, depth int) *UltimateState {
 }
 
 
-func convertCoordinate(oneDim int) (int, int) {
-	return oneDim % 3, oneDim / 3
-}
 
-func computeMove(move MoveCoordinate) (int, int) {
-	boardX, boardY := convertCoordinate(move.BoardCoordinate)
-	i, j := convertCoordinate(move.Coordinate)
-	return boardX * 3 + i, boardY * 3 + j
-}
 
 
 func runUltimate() {
 	state := UltimateState{0.0, nil, 0,
-		&DataGame{true, EmptyUltimateBoard(),
-			EmptyBoard(), MoveCoordinate{-1, -1}}}
-	turn := 0
+		&DataGame{Self: true, UBoard: EmptyUltimateBoard(),
+			BoardResult: EmptyBoard(), LastMove: MoveCoordinate{BoardCoordinate: -1, Coordinate: -1}}}
 	for {
-		turn++
 		var opponentRow, opponentCol int
 		_, _ = fmt.Scan(&opponentRow, &opponentCol)
 
@@ -155,17 +145,9 @@ func runUltimate() {
 			state.gameData.Self = false
 			Move(state.gameData, opponentCol, opponentRow)
 		}
-		var depth int
-		if turn < 10 {
-			depth = 5
-		} else if turn < 20 {
-			depth = 6
-		} else {
-			depth = 7
-		}
-		next := play(&state, depth)
+		next := play(&state, 4)
 		if next != nil {
-			x, y := computeMove(next.gameData.LastMove)
+			x, y := ComputeMove(next.gameData.LastMove)
 			Move(state.gameData, x, y)
 			fmt.Println(y, x)// Write action to stdout
 		}

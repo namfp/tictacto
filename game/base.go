@@ -53,3 +53,13 @@ func fullBoard(board *Board)  bool {
 	}
 	return true
 }
+
+func convertCoordinate(oneDim int) (int, int) {
+	return oneDim % 3, oneDim / 3
+}
+
+func ComputeMove(move MoveCoordinate) (int, int) { //col then row
+	boardX, boardY := convertCoordinate(move.BoardCoordinate)
+	i, j := convertCoordinate(move.Coordinate)
+	return boardX * 3 + i, boardY * 3 + j
+}

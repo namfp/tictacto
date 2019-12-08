@@ -56,21 +56,3 @@ func evaluate(allPossibilities []gameState, state *gameState, compare func(float
 		}
 	}
 }
-
-//func getMove(state *gameState, nextState *gameState) (int, int) {
-//	for i:=0; i<9; i++ {
-//		if state.board[i] != nextState.board[i] {
-//			return i / 3, i % 3
-//		}
-//	}
-//	panic("two boards are identical")
-//}
-//
-//func move(state *gameState, player int, i int, j int) {
-//	if state.self && player == OPPONENT {
-//		panic("It is not the opponent turn!")
-//	}
-//	pos := i * 3 + j
-//	state.board[pos] = player
-//	state.self = !state.self
-//}
