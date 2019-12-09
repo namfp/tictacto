@@ -8,25 +8,30 @@ import (
 )
 
 type UltimateState struct {
-	result        float64
+	Result        float64
 	bestMove      *UltimateState
-	nbEvaluations int
-	gameData      *DataGame
+	NbEvaluations int
+	GameData      *DataGame
 }
 
+func StartUltimateState() UltimateState {
+	return  UltimateState{0.0, nil, 0,
+		&DataGame{Self: true, UBoard: EmptyUltimateBoard(),
+			BoardResult: EmptyBoard(), LastMove: MoveCoordinate{BoardCoordinate: -1, Coordinate: -1}}}
+}
 
 func setResult(ultimateState *UltimateState, result float64, nbEvaluation int) {
-	ultimateState.result = result
+	ultimateState.Result = result
 	ultimateState.bestMove = nil
-	ultimateState.nbEvaluations = nbEvaluation
+	ultimateState.NbEvaluations = nbEvaluation
 }
 
 func createState(ultimateState *UltimateState, game *DataGame) UltimateState {
 	cloned := *ultimateState
-	cloned.gameData = game
+	cloned.GameData = game
 	cloned.bestMove = nil
-	cloned.result = 0
-	cloned.nbEvaluations = 0
+	cloned.Result = 0
+	cloned.NbEvaluations = 0
 	return cloned
 }
 
@@ -34,41 +39,41 @@ func createState(ultimateState *UltimateState, game *DataGame) UltimateState {
 func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta float64) {
 
 
-	winner := FindWinnerUltimate(&ultimateState.gameData.UBoard)
+	winner := FindWinnerUltimate(&ultimateState.GameData.UBoard)
 	if winner == SELF {
 		setResult(ultimateState, 10000, 1)
 	} else if winner == OPPONENT {
 		setResult(ultimateState, -10000, 1)
 	} else if depth == 0 {
-		setResult(ultimateState, scoreGameState(&ultimateState.gameData.UBoard), 1)
+		setResult(ultimateState, scoreGameState(&ultimateState.GameData.UBoard), 1)
 	} else {
-		nextPossibilities := FindNextPossibilities(ultimateState.gameData)
+		nextPossibilities := FindNextPossibilities(ultimateState.GameData)
 		if len(nextPossibilities) == 0 {
 			setResult(ultimateState, 0, 1)
-		} else if ultimateState.gameData.Self {
+		} else if ultimateState.GameData.Self {
 			value := math.Inf(-1)
 			var bestMove *UltimateState
 			nbEvaluations := 1
 			for _, s := range nextPossibilities {
 				state := createState(ultimateState, s)
 				alphaBeta(&state, depth - 1, alpha, beta)
-				nbEvaluations += state.nbEvaluations
-				if state.result > value {
-					value = state.result
+				nbEvaluations += state.NbEvaluations
+				if state.Result > value {
+					value = state.Result
 					bestMove = &state
 				}
 
 				alpha = math.Max(alpha, value)
 				if alpha >= beta {
-					ultimateState.result = value
+					ultimateState.Result = value
 					ultimateState.bestMove = &state
-					ultimateState.nbEvaluations = nbEvaluations
+					ultimateState.NbEvaluations = nbEvaluations
 					break
 				}
 			}
-			ultimateState.result = value
+			ultimateState.Result = value
 			ultimateState.bestMove = bestMove
-			ultimateState.nbEvaluations = nbEvaluations
+			ultimateState.NbEvaluations = nbEvaluations
 
 		} else {
 			value := math.Inf(1)
@@ -77,34 +82,35 @@ func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta floa
 			for _, s := range nextPossibilities {
 				state := createState(ultimateState, s)
 				alphaBeta(&state, depth - 1, alpha, beta)
-				nbEvaluations += state.nbEvaluations
+				nbEvaluations += state.NbEvaluations
 
-				if state.result < value {
-					value = state.result
+				if state.Result < value {
+					value = state.Result
 					bestMove = &state
 				}
 
 				beta = math.Min(beta, value)
 
 				if alpha >= beta {
-					ultimateState.result = value
+					ultimateState.Result = value
 					ultimateState.bestMove = &state
-					ultimateState.nbEvaluations = nbEvaluations
+					ultimateState.NbEvaluations = nbEvaluations
 					break
 				}
 			}
-			ultimateState.result = value
+			ultimateState.Result = value
 			ultimateState.bestMove = bestMove
-			ultimateState.nbEvaluations = nbEvaluations
+			ultimateState.NbEvaluations = nbEvaluations
 		}
 	}
 }
 
-func play(ultimateState *UltimateState, depth int) *UltimateState {
+
+func Play(ultimateState *UltimateState, depth int) *UltimateState {
 	alphaBeta(ultimateState, depth, math.Inf(-1), math.Inf(1))
 	if ultimateState.bestMove == nil {
 		// create a random move
-		possibleMoves := FindNextPossibilities(ultimateState.gameData)
+		possibleMoves := FindNextPossibilities(ultimateState.GameData)
 		nb := len(possibleMoves)
 		var chosen UltimateState
 		if nb != 0 {
@@ -118,9 +124,6 @@ func play(ultimateState *UltimateState, depth int) *UltimateState {
 		return ultimateState.bestMove
 	}
 }
-
-
-
 
 
 func runUltimate() {
@@ -140,15 +143,15 @@ func runUltimate() {
 		}
 
 		if opponentRow == -1 && opponentCol == -1 {
-			state.gameData.Self = true
+			state.GameData.Self = true
 		} else {
-			state.gameData.Self = false
-			Move(state.gameData, opponentCol, opponentRow)
+			state.GameData.Self = false
+			Move(state.GameData, opponentCol, opponentRow)
 		}
-		next := play(&state, 4)
+		next := Play(&state, 4)
 		if next != nil {
-			x, y := ComputeMove(next.gameData.LastMove)
-			Move(state.gameData, x, y)
+			x, y := ComputeMove(next.GameData.LastMove)
+			Move(state.GameData, x, y)
 			fmt.Println(y, x)// Write action to stdout
 		}
 

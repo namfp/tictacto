@@ -25,11 +25,11 @@ func TestAlphaBeta1(t *testing.T) {
 
 func TestPlayFunc(t *testing.T) {
 	gameState := gameStateTest()
-	play(&gameState, 5)
+	Play(&gameState, 5)
 }
 
 func TestMoveUltimate(t *testing.T) {
-	gameData := gameStateTest().gameData
+	gameData := gameStateTest().GameData
 	Move(gameData, 8, 8)
 	compare := MoveCoordinate{8, 8}
 	if gameData.LastMove != compare {
@@ -56,7 +56,7 @@ func TestScoreBoard(t *testing.T) {
 		Cd{0,  2}, Cd{1,  6}, Cd{3,  1}, Cd{0,  3}, Cd{0,  1}, Cd{1,  3},
 		Cd{4,  2}, Cd{4,  6}, Cd{4,  1}, Cd{3,  3}, Cd{2,  2}, Cd{2,  3},
 		Cd{7,  2}, Cd{2,  6}}
-	gameData := gameStateTest().gameData
+	gameData := gameStateTest().GameData
 
 	for _, c := range played {
 		Move(gameData, c.y, c.x)

@@ -4,24 +4,23 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"tictactoe/game"
+	. "tictactoe/game"
 	"time"
 )
 
 type MCTS struct {
-	value float64
+	value     float64
 	nbVisited int
-	gameData *game.DataGame
-	children []MCTS
-	parent *MCTS
+	GameData  *DataGame
+	children  []MCTS
+	parent    *MCTS
+	isLeafNode bool
 }
 
 func uct(node *MCTS) float64 {
-	return node.value / float64(node.nbVisited) +
-		1.41 * math.Sqrt(math.Log(float64(node.parent.nbVisited)) / float64(node.nbVisited))
-
+	return node.value/float64(node.nbVisited) +
+		1.41*math.Sqrt(math.Log(float64(node.parent.nbVisited))/float64(node.nbVisited))
 }
-
 
 func backPropagation(node *MCTS, value float64) {
 	node.value += value
@@ -33,7 +32,7 @@ func backPropagation(node *MCTS, value float64) {
 	}
 }
 
-func runMCTS(node *MCTS, timeLimit time.Time) {
+func RunMCTS(node *MCTS, timeLimit time.Time) {
 	for {
 		now := time.Now()
 		if now.After(timeLimit) {
@@ -46,38 +45,43 @@ func runMCTS(node *MCTS, timeLimit time.Time) {
 	}
 }
 
-func afterMove(node *MCTS, col int, row int) *MCTS {
-	lastMove := game.ToBoardCoordinate(col, row)
+func AfterMove(node *MCTS, col int, row int) *MCTS {
+	lastMove := ToBoardCoordinate(col, row)
 	var found *MCTS
 	for i, c := range node.children {
-		if c.gameData.LastMove == lastMove {
+		if c.GameData.LastMove == lastMove {
 			found = &node.children[i]
 		}
 	}
 	if found == nil {
-		game.Move(node.gameData, col, row)
+		Move(node.GameData, col, row)
 		return node
 	}
 	return found
 }
 
-func chooseBestMove(node *MCTS) (int, int) {
+func ChooseBestMove(node *MCTS) (int, int) {
 	chosen := &node.children[0]
 	for i, c := range node.children {
 		if c.value > chosen.value {
 			chosen = &node.children[i]
 		}
 	}
-	return game.ComputeMove(chosen.gameData.LastMove)
+	return ComputeMove(chosen.GameData.LastMove)
+}
+
+func StartStateMCTS() MCTS {
+	return MCTS{0.0, 0, &DataGame{Self: true, UBoard: EmptyUltimateBoard(),
+		BoardResult: EmptyBoard(), LastMove: MoveCoordinate{BoardCoordinate: -1, Coordinate: -1}},
+		make([]MCTS, 0), nil, false}
 }
 
 func MonteCarloGamePlay() {
-	state := MCTS{0.0, 0, &game.DataGame{Self: true, UBoard: game.EmptyUltimateBoard(),
-		BoardResult: game.EmptyBoard(), LastMove: game.MoveCoordinate{BoardCoordinate: -1, Coordinate: -1}},
-		make([]MCTS, 0), nil}
+	s := StartStateMCTS()
+	state := &s
 	turn := 0
 	for {
-		turn ++
+		turn++
 		var opponentRow, opponentCol int
 		_, _ = fmt.Scan(&opponentRow, &opponentCol)
 
@@ -90,10 +94,10 @@ func MonteCarloGamePlay() {
 		}
 
 		if opponentRow == -1 && opponentCol == -1 {
-			state.gameData.Self = true
+			state.GameData.Self = true
 		} else {
-			state.gameData.Self = false
-			afterMove(&state, opponentCol, opponentRow)
+			state.GameData.Self = false
+			state = AfterMove(state, opponentCol, opponentRow)
 		}
 
 		var durationLimit time.Duration
@@ -102,35 +106,81 @@ func MonteCarloGamePlay() {
 		} else {
 			durationLimit, _ = time.ParseDuration("99ms")
 		}
-		runMCTS(&state, time.Now().Add(durationLimit))
-		x, y := chooseBestMove(&state)
-		afterMove(&state, x, y)
+		RunMCTS(state, time.Now().Add(durationLimit))
+		x, y := ChooseBestMove(state)
+		state = AfterMove(state, x, y)
 		fmt.Println(y, x)
 	}
 }
 
+func expand(node *MCTS) {
+	nextPossibilites := FindNextPossibilities(node.GameData)
+	for i := range nextPossibilites {
+		// check if terminated node
+		child := MCTS{0.0, 0, nextPossibilites[i], make([]MCTS, 0),
+			node, false}
+		updateResult(&child)
+		node.children = append(node.children, child)
+	}
+}
+
+func gameResult(board *UltimateBoard) int {
+	winner := FindWinnerUltimate(board)
+	if winner == SELF || winner == OPPONENT {
+		return winner
+	} else {
+		gameOver := true
+		for _, b := range board {
+			for _, c := range b {
+				if c == EMPTY {
+					gameOver = false
+				}
+			}
+		}
+		if gameOver {
+			return FULL
+		}
+	}
+	return EMPTY
+}
+
+func updateResult(node *MCTS) {
+	result := gameResult(&node.GameData.UBoard)
+	if result != EMPTY {
+		// leaf node
+		node.isLeafNode = true
+		if result == SELF {
+			node.value = 1.0
+		} else if result == OPPONENT {
+			node.value = -1.0
+		} else {
+			node.value = 0.0
+		}
+	}
+}
 
 func selecting(node *MCTS) *MCTS {
-
-	if len(node.children) == 0 {
-		if node.nbVisited == 0 {
+	updateResult(node)
+	if node.isLeafNode {
+		return node
+	} else if len(node.children) == 0 {
+		if node.nbVisited == 0 && node.parent != nil {
 			return node
 		} else {
-			nextPossibilites := game.FindNextPossibilities(node.gameData)
-			for i := range nextPossibilites {
-				// check if terminated node
-				node.children = append(node.children,
-				MCTS{0.0, 0, nextPossibilites[i], make([]MCTS, 0),
-				node})
-			}
+			expand(node)
 			return &node.children[0]
-			
 		}
 	}
 
-	for _, c := range node.children {
+	noLeafs := make([]*MCTS, 0)
+	for i, c := range node.children {
+		if !c.isLeafNode {
+			noLeafs = append(noLeafs, &node.children[i])
+		}
+	}
+	for i, c := range noLeafs {
 		if c.nbVisited == 0 {
-			return &c
+			return &node.children[i]
 		}
 	}
 
@@ -143,23 +193,20 @@ func selecting(node *MCTS) *MCTS {
 			currentUCT = uct(&c)
 		}
 	}
-
 	return selecting(chosen)
 }
 
-
-
 func rollout(node *MCTS) float64 {
-	dataGame := node.gameData
+	dataGame := node.GameData
 	for {
-		winner := game.FindWinnerUltimate(&dataGame.UBoard)
-		if winner == game.SELF {
+		winner := FindWinnerUltimate(&dataGame.UBoard)
+		if winner == SELF {
 			return 1.0
-		} else if winner == game.OPPONENT {
+		} else if winner == OPPONENT {
 			return -1.0
 		}
 
-		nextStates := game.FindNextPossibilities(dataGame)
+		nextStates := FindNextPossibilities(dataGame)
 		nbValues := len(nextStates)
 		if nbValues == 0 {
 			return 0.0

@@ -31,7 +31,7 @@ func TestMiniMax1(t *testing.T) {
 	}
 
 	if state.bestMove.board[5] != SELF {
-		t.Errorf("It must play the position 5")
+		t.Errorf("It must Play the position 5")
 	}
 }
 
@@ -47,6 +47,6 @@ func TestMiniMax2(t *testing.T) {
 	}
 
 	if state.bestMove.board[5] != SELF {
-		t.Errorf("It must play the position 5")
+		t.Errorf("It must Play the position 5")
 	}
 }

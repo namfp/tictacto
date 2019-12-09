@@ -7,22 +7,20 @@ import (
 )
 
 func Bench() {
-	state := UltimateState{0.0, nil, 0,
-		&DataGame{Self: true, UBoard: EmptyUltimateBoard(),
-			BoardResult: EmptyBoard(), LastMove: MoveCoordinate{BoardCoordinate: -1, Coordinate: -1}}}
+	state := StartUltimateState()
 	for {
 		start := time.Now()
-		next := play(&state, 5)
+		next := Play(&state, 5)
 		t := time.Now()
 		elapsed := t.Sub(start)
 
 
 		if next != nil {
-			x, y := ComputeMove(next.gameData.LastMove)
-			Move(state.gameData, x, y)
-			fmt.Println(y, x, state.nbEvaluations, elapsed)// Write action to stdout
+			x, y := ComputeMove(next.GameData.LastMove)
+			Move(state.GameData, x, y)
+			fmt.Println(y, x, state.NbEvaluations, elapsed) // Write action to stdout
 		} else {
-			fmt.Println(state.result)
+			fmt.Println(state.Result)
 			fmt.Println("Finished")
 			break
 		}
