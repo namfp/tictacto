@@ -38,7 +38,7 @@ func match() {
 	s := montecarlo.StartStateMCTS()
 	monteCarloState := &s
 	monteCarloState.GameData.Self = false
-	durationLimit, _ := time.ParseDuration("1s")
+	durationLimit, _ := time.ParseDuration("1000ms")
 	turn := 0
 	for {
 		turn ++

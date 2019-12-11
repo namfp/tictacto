@@ -36,7 +36,7 @@ func createState(ultimateState *UltimateState, game *DataGame) UltimateState {
 }
 
 
-func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta float64) {
+func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta float64, scoreTable *ScoreTable) {
 
 
 	winner := FindWinnerUltimate(&ultimateState.GameData.UBoard)
@@ -45,7 +45,7 @@ func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta floa
 	} else if winner == OPPONENT {
 		setResult(ultimateState, -10000, 1)
 	} else if depth == 0 {
-		setResult(ultimateState, scoreGameState(&ultimateState.GameData.UBoard), 1)
+		setResult(ultimateState, scoreGameState(&ultimateState.GameData.UBoard, scoreTable), 1)
 	} else {
 		nextPossibilities := FindNextPossibilities(ultimateState.GameData)
 		if len(nextPossibilities) == 0 {
@@ -56,7 +56,7 @@ func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta floa
 			nbEvaluations := 1
 			for _, s := range nextPossibilities {
 				state := createState(ultimateState, s)
-				alphaBeta(&state, depth - 1, alpha, beta)
+				alphaBeta(&state, depth - 1, alpha, beta, scoreTable)
 				nbEvaluations += state.NbEvaluations
 				if state.Result > value {
 					value = state.Result
@@ -81,7 +81,7 @@ func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta floa
 			nbEvaluations := 1
 			for _, s := range nextPossibilities {
 				state := createState(ultimateState, s)
-				alphaBeta(&state, depth - 1, alpha, beta)
+				alphaBeta(&state, depth - 1, alpha, beta, scoreTable)
 				nbEvaluations += state.NbEvaluations
 
 				if state.Result < value {
@@ -106,8 +106,8 @@ func alphaBeta(ultimateState *UltimateState, depth int, alpha float64, beta floa
 }
 
 
-func Play(ultimateState *UltimateState, depth int) *UltimateState {
-	alphaBeta(ultimateState, depth, math.Inf(-1), math.Inf(1))
+func Play(ultimateState *UltimateState, depth int, scoreTable *ScoreTable) *UltimateState {
+	alphaBeta(ultimateState, depth, math.Inf(-1), math.Inf(1), scoreTable)
 	if ultimateState.bestMove == nil {
 		// create a random move
 		possibleMoves := FindNextPossibilities(ultimateState.GameData)
@@ -130,6 +130,14 @@ func runUltimate() {
 	state := UltimateState{0.0, nil, 0,
 		&DataGame{Self: true, UBoard: EmptyUltimateBoard(),
 			BoardResult: EmptyBoard(), LastMove: MoveCoordinate{BoardCoordinate: -1, Coordinate: -1}}}
+	scoreTable := ScoreTable{
+		PlayedCenterBoard: 3,
+		ConsWinning:       0,
+		ConsWinningBoard:  0,
+		WinCenterBoard:    10,
+		WindEdge:          3,
+		WinBoard:          5,
+	}
 	for {
 		var opponentRow, opponentCol int
 		_, _ = fmt.Scan(&opponentRow, &opponentCol)
@@ -148,7 +156,7 @@ func runUltimate() {
 			state.GameData.Self = false
 			Move(state.GameData, opponentCol, opponentRow)
 		}
-		next := Play(&state, 4)
+		next := Play(&state, 4, scoreTable)
 		if next != nil {
 			x, y := ComputeMove(next.GameData.LastMove)
 			Move(state.GameData, x, y)

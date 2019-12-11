@@ -15,11 +15,12 @@ type MCTS struct {
 	children  []MCTS
 	parent    *MCTS
 	isLeafNode bool
+	isChecked bool
 }
 
 func uct(node *MCTS) float64 {
 	return node.value/float64(node.nbVisited) +
-		1.41*math.Sqrt(math.Log(float64(node.parent.nbVisited))/float64(node.nbVisited))
+		5*math.Sqrt(math.Log(float64(node.parent.nbVisited))/float64(node.nbVisited))
 }
 
 func backPropagation(node *MCTS, value float64) {
@@ -63,7 +64,7 @@ func AfterMove(node *MCTS, col int, row int) *MCTS {
 func ChooseBestMove(node *MCTS) (int, int) {
 	chosen := &node.children[0]
 	for i, c := range node.children {
-		if c.value > chosen.value {
+		if c.nbVisited > chosen.nbVisited {
 			chosen = &node.children[i]
 		}
 	}
@@ -73,7 +74,7 @@ func ChooseBestMove(node *MCTS) (int, int) {
 func StartStateMCTS() MCTS {
 	return MCTS{0.0, 0, &DataGame{Self: true, UBoard: EmptyUltimateBoard(),
 		BoardResult: EmptyBoard(), LastMove: MoveCoordinate{BoardCoordinate: -1, Coordinate: -1}},
-		make([]MCTS, 0), nil, false}
+		make([]MCTS, 0), nil, false, false}
 }
 
 func MonteCarloGamePlay() {
@@ -118,7 +119,7 @@ func expand(node *MCTS) {
 	for i := range nextPossibilites {
 		// check if terminated node
 		child := MCTS{0.0, 0, nextPossibilites[i], make([]MCTS, 0),
-			node, false}
+			node, false, false}
 		updateResult(&child)
 		node.children = append(node.children, child)
 	}
@@ -157,10 +158,14 @@ func updateResult(node *MCTS) {
 			node.value = 0.0
 		}
 	}
+	node.isChecked = true
 }
 
 func selecting(node *MCTS) *MCTS {
-	updateResult(node)
+	if !node.isChecked {
+		updateResult(node)
+	}
+
 	if node.isLeafNode {
 		return node
 	} else if len(node.children) == 0 {
@@ -168,17 +173,14 @@ func selecting(node *MCTS) *MCTS {
 			return node
 		} else {
 			expand(node)
+			if len(node.children) == 0 {
+				fmt.Println("notpossible")
+			}
 			return &node.children[0]
 		}
 	}
 
-	noLeafs := make([]*MCTS, 0)
 	for i, c := range node.children {
-		if !c.isLeafNode {
-			noLeafs = append(noLeafs, &node.children[i])
-		}
-	}
-	for i, c := range noLeafs {
 		if c.nbVisited == 0 {
 			return &node.children[i]
 		}
@@ -188,9 +190,10 @@ func selecting(node *MCTS) *MCTS {
 	currentUCT := uct(chosen)
 
 	for i, c := range node.children {
-		if currentUCT < uct(&c) {
+		uc := uct(&c)
+		if currentUCT < uc {
 			chosen = &node.children[i]
-			currentUCT = uct(&c)
+			currentUCT = uc
 		}
 	}
 	return selecting(chosen)
@@ -198,6 +201,9 @@ func selecting(node *MCTS) *MCTS {
 
 func rollout(node *MCTS) float64 {
 	dataGame := node.GameData
+	if node.isLeafNode {
+		return node.value
+	}
 	for {
 		winner := FindWinnerUltimate(&dataGame.UBoard)
 		if winner == SELF {
@@ -209,7 +215,7 @@ func rollout(node *MCTS) float64 {
 		nextStates := FindNextPossibilities(dataGame)
 		nbValues := len(nextStates)
 		if nbValues == 0 {
-			return 0.0
+			return 0.0 // Equal
 		} else {
 			dataGame = nextStates[rand.Intn(len(nextStates))]
 		}

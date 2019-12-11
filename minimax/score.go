@@ -2,14 +2,24 @@ package minimax
 
 import . "tictactoe/game"
 
-func scoreGameState(ultimateBoard *UltimateBoard) float64 {
-	scoreSelf := computeMiniBoardScore(ultimateBoard, SELF)
-	scoreOpponent := computeMiniBoardScore(ultimateBoard, OPPONENT)
+type ScoreTable struct {
+	PlayedCenterBoard float64
+	PlayedCenter float64
+	ConsWinning       float64
+	ConsWinningBoard  float64
+	WinCenterBoard    float64
+	WindEdge          float64
+	WinBoard          float64
+}
+
+func scoreGameState(ultimateBoard *UltimateBoard, scoreTable *ScoreTable) float64 {
+	scoreSelf := computeMiniBoardScore(ultimateBoard, SELF, scoreTable)
+	scoreOpponent := computeMiniBoardScore(ultimateBoard, OPPONENT, scoreTable)
 	return scoreSelf - scoreOpponent
 }
 
 
-func computeMiniBoardScore(ultimateBoard *UltimateBoard, player int) float64 {
+func computeMiniBoardScore(ultimateBoard *UltimateBoard, player int, scoreTable *ScoreTable) float64 {
 	globalBoard := EmptyBoard()
 	score := 0.0
 	for i, board:= range ultimateBoard {
@@ -17,25 +27,28 @@ func computeMiniBoardScore(ultimateBoard *UltimateBoard, player int) float64 {
 		if i == 4 && globalBoard[i] == EMPTY {
 			for c := range board {
 				if c == player {
-					score += 3 // add 3 for each played at the center
+					score += scoreTable.PlayedCenterBoard // add 3 for each played at the center
 				}
 			}
 		}
-		score += computeConsecutiveWinningScore(&board, player) * 2
+		if board[4] == player {
+			score += scoreTable.PlayedCenterBoard
+		}
+		score += computeConsecutiveWinningScore(&board, player) * scoreTable.ConsWinning
 	}
 
 	for i, v := range globalBoard {
 		if v == player {
-			score += 5
+			score += scoreTable.WinBoard
 			if i == 4 { // center board
-				score += 10
+				score += scoreTable.WinCenterBoard
 			}
 			if i == 0 || i == 2 || i == 6 || i == 8 {
-				score += 3
+				score += scoreTable.WindEdge
 			}
 		}
 	}
-	score += computeConsecutiveWinningScore(&globalBoard, player) * 4
+	score += computeConsecutiveWinningScore(&globalBoard, player) * scoreTable.ConsWinningBoard
 	return score
 }
 
@@ -52,7 +65,7 @@ func computeConsecutiveWinningScoreColumn(board *Board, player int) float64 {
 				isCount = false
 			}
 		}
-		if isCount && count == 2{
+		if isCount && count == 2 {
 			score += 1
 		}
 	}
